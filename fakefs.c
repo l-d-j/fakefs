@@ -28,6 +28,9 @@
 #include "fcall.h"
 #include "9pfs.h"
 #include "util.h"
+
+#define FAKEFS_HOST "FAKEFS_HOST"
+#define FAKEFS_PORT "FAKEFS_PORT"
 //#use hasfilename for caching
 //# look at the getcwd
 
@@ -72,7 +75,7 @@ dir2stat(struct stat *s, Dir *d)
 }	
 
 
-FFid * _connect(const char *host, const char *port){
+FFid* _connect(const char *host, const char *port){
  
   struct sockaddr *addr;
   struct passwd *pw;
@@ -141,7 +144,7 @@ int open(const char *pathname, int flags, ...)
   
   if (strncmp(pathname, "/xxx", 4) == 0){
 
-    _connect("172.17.0.3", "6000");
+    _connect(getenv(FAKEFS_HOST), getenv(FAKEFS_PORT));
 
     rc = _stat(pathname+4, &remote_stat);
     printf("%d, %s\n", rc, pathname+4);
@@ -187,7 +190,7 @@ int execve(const char *filename, char *const argv[], char *const envp[]){
   real_execve = dlsym(RTLD_NEXT, "execve");
   
   if (strncmp(filename, "/xxx", 4) == 0){
-    _connect("172.17.0.3", "6000");
+    _connect(getenv(FAKEFS_HOST), getenv(FAKEFS_PORT));
 
     rc = _stat(filename+4, &remote_stat);
     printf("%d, %s\n", rc, filename+4);
@@ -226,11 +229,10 @@ int execve(const char *filename, char *const argv[], char *const envp[]){
 int __xstat(int ver, const char *pathname, struct stat *buf)
 {
   real_xstat = dlsym(RTLD_NEXT, "__xstat");
-
   if (strncmp(pathname, "/xxx", 4) == 0)
     {
       int rc;
-      _connect("172.17.0.3", "6000");
+      _connect(getenv(FAKEFS_HOST), getenv(FAKEFS_PORT));
       rc = _stat(pathname+4, buf);
       buf->st_mode = 00555;
       return rc;
@@ -245,7 +247,7 @@ int __lxstat(int ver, const char *pathname, struct stat *buf)
   if (strncmp(pathname, "/xxx", 4) == 0)
     {
       int rc;
-      _connect("172.17.0.3", "6000");
+      _connect(getenv(FAKEFS_HOST), getenv(FAKEFS_PORT));
       rc = _stat(pathname+4, buf);
       buf->st_mode = 00555;
       return rc;
@@ -260,7 +262,6 @@ int chdir(const char *path) {
 
   real_chdir = dlsym(RTLD_NEXT, "chdir");
   if (strcmp(path, "/xxx") == 0)
-    
     printf("MATCH");
     return 0;
   int rc = real_chdir(path);
